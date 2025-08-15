@@ -1,0 +1,5 @@
+# avaktrahu/dataset
+# List of files and directories to ignore for git commit
+
+# Dataset contents
+dataset/
