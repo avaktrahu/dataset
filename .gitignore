@@ -3,3 +3,10 @@
 
 # Dataset contents
 dataset/
+
+# Python
+.pyvenv
+__pycache__/
+
+# Logging and diagnostics
+*.log
