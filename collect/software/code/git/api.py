@@ -8,7 +8,9 @@ Git commands API for handling git operations
 # Imports
 #
 
+import os
 import subprocess
+from pathlib import Path
 from datetime import datetime
 
 # For typing support
@@ -26,6 +28,14 @@ class Commit(TypedDict):
     timestamp: str
 
 # =============================================================================
+# Configuration
+#
+
+# Required for consistent git patching behaviour
+ENV = os.environ.copy()
+ENV['GIT_CEILING_DIRECTORIES'] = str(Path('dataset').parent.resolve())
+
+# =============================================================================
 # Helper methods
 #
 
@@ -34,7 +44,6 @@ def execute(
         input: Optional[str] = None,
         cwd: Optional[str] = None,
         strip: Optional[bool] = True,
-        nogit: Optional[bool] = False
     ) -> str:
     """
     Execute a git command and return its stdout. Exits on error.
@@ -43,13 +52,12 @@ def execute(
         input: Pass a string to the subprocess's stdin.
         cwd: Working directory to run the command in.
         strip: Remove leading and trailing whitespace.
-        nogit: Command is not git subcommand.
     Returns:
         The standard output of the command.
     Raises:
         RuntimeError: If the command fails, it raises an error with the command and stderr output
     """
-    full_cmd = cmd if nogit else (['git'] + cmd)
+    full_cmd = ['git'] + cmd
     command = " ".join(full_cmd)
     logger.debug(f"Executing command [{command}]")
 
@@ -57,7 +65,8 @@ def execute(
         full_cmd, cwd=cwd,
         input=input,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True
+        text=True,
+        env=ENV
     )
     if result.returncode != 0:
         logger.error(f"Error running {command}: {result.stderr}")
@@ -109,7 +118,7 @@ class GitAPI:
         """
         if self.origin == '.':
             # TODO: Handle local directories
-            return 'gitlab'
+            return 'github'
 
         if 'github.com' in self.origin:
             return 'github'
@@ -198,7 +207,7 @@ class GitAPI:
 
         # The 'git diff <commit1> <commit2>' command generates a patch representing the changes
         # that would transform commit1 into commit2.
-        return execute(['diff', hash, end_ref], cwd=self.target, strip=False)
+        return execute(['diff', hash, end_ref, '--binary'], cwd=self.target, strip=False)
 
     def apply(self, patch: str, target: str) -> str:
         """
@@ -211,4 +220,4 @@ class GitAPI:
         Raises:
             RuntimeError: If applying the patch fails.
         """
-        return execute(['patch', '-p1'], input=patch, cwd=target, nogit=True)
+        return execute(['apply'], input=patch, cwd=target)
