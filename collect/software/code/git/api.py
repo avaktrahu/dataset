@@ -220,4 +220,4 @@ class GitAPI:
         Raises:
             RuntimeError: If applying the patch fails.
         """
-        return execute(['apply'], input=patch, cwd=target)
+        return execute(['apply', '--allow-empty'], input=patch, cwd=target)
